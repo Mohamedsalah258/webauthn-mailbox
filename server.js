@@ -39,8 +39,8 @@ app.post('/auth/register/start', async (req, res) => {
       data: { username },
       include: { credentials: true },
     });
-  } else if (user.credentials.length > 0) {
-    return res.status(403).json({ error: 'This account is already locked to another device. Access is restricted to the original registered device only.' });
+  } else if (user.credentials.some(c => c.platform === 'WEB_PASSKEY')) {
+    return res.status(403).json({ error: 'This account is already locked to another web device. Access is restricted to the original registered device only.' });
   }
 
   const options = await generateRegistrationOptions({
