@@ -39,6 +39,8 @@ app.post('/auth/register/start', async (req, res) => {
       data: { username },
       include: { credentials: true },
     });
+  } else if (user.credentials.length > 0) {
+    return res.status(403).json({ error: 'This account is already locked to another device. Access is restricted to the original registered device only.' });
   }
 
   const options = await generateRegistrationOptions({
@@ -169,7 +171,7 @@ app.post('/auth/login/finish', async (req, res) => {
   });
 
   if (!dbCredential) {
-    return res.status(400).json({ error: 'Credential not recognized' });
+    return res.status(403).json({ error: 'Access denied. This account can only be accessed from the original registered device.' });
   }
 
   const user = await prisma.user.findUnique({
