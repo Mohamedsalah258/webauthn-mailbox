@@ -167,10 +167,24 @@
     const mailboxEl = document.getElementById('mailbox-section');
     const authEl = document.getElementById('auth-section');
 
-    function getDeviceId() {
-      let id = localStorage.getItem('deviceId');
-      if (!id) { id = crypto.randomUUID(); localStorage.setItem('deviceId', id); }
-      return id;
+    async function getDeviceId() {
+      // Collect hardware-level signals — stable across all browsers on the same device
+      const signals = [
+        screen.width,
+        screen.height,
+        screen.colorDepth,
+        navigator.hardwareConcurrency,
+        navigator.deviceMemory || 'unknown',
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+        navigator.platform,
+        navigator.language,
+        navigator.maxTouchPoints,
+      ].join('|');
+
+      const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(signals));
+      return Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
     }
 
     function setStatus(msg, isError = false) {
@@ -192,12 +206,12 @@
       if (!username) return setStatus('Please enter a username.', true);
       setStatus('Starting registration…');
       try {
-        const deviceId = getDeviceId();
+        const deviceId = await getDeviceId();
         const options = await post('/auth/register/start', { username, deviceId });
         if (options.error) return setStatus(options.error, true);
 
         const attResp = await startRegistration({ optionsJSON: options.options || options });
-        const result = await post('/auth/register/finish', { username, credential: attResp, deviceId });
+        const result = await post('/auth/register/finish', { username, credential: attResp, deviceId: await getDeviceId() });
         if (result.error) return setStatus(result.error, true);
 
         setStatus('Fingerprint registered! You can now log in.');

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node ./node_modules/prisma/build/index.js db push && node server.js",
-    "build": "node ./node_modules/prisma/build/index.js generate",
+    "build": "node scripts/prepare-schema.js && node ./node_modules/prisma/build/index.js generate",
     "db:push": "prisma db push"
   },
   "dependencies": {
