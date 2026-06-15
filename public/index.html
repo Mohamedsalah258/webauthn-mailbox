@@ -179,25 +179,6 @@
       } catch { return 'webgl-error'; }
     }
 
-    function getCanvasSignal() {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 240; canvas.height = 60;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#f0f';
-        ctx.fillRect(0, 0, 240, 60);
-        ctx.font = 'bold 18px Arial, sans-serif';
-        ctx.fillStyle = '#0ff';
-        ctx.fillText('SecureMailbox\u{1F510}', 10, 35);
-        ctx.strokeStyle = 'rgba(255,128,0,0.8)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(200, 30, 20, 0, Math.PI * 2);
-        ctx.stroke();
-        return canvas.toDataURL();
-      } catch { return 'canvas-error'; }
-    }
-
     async function getDeviceId() {
       const signals = [
         // Hardware signals — identical across all browsers on same device
@@ -208,10 +189,8 @@
         navigator.platform,
         navigator.language,
         navigator.maxTouchPoints,
-        // GPU signals — comes from OS driver, stable across browsers
+        // GPU signals — stable across browsers (comes from OS driver)
         getWebGLSignal(),
-        // Canvas — rendering differs slightly between Chrome/Firefox but adds uniqueness
-        getCanvasSignal(),
       ].join('||');
 
       const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(signals));
