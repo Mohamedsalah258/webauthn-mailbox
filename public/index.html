@@ -167,19 +167,52 @@
     const mailboxEl = document.getElementById('mailbox-section');
     const authEl = document.getElementById('auth-section');
 
+    function getWebGLSignal() {
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) return 'no-webgl';
+        const ext = gl.getExtension('WEBGL_debug_renderer_info');
+        const renderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+        const vendor = ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR);
+        return `${vendor}~${renderer}`;
+      } catch { return 'webgl-error'; }
+    }
+
+    function getCanvasSignal() {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 240; canvas.height = 60;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#f0f';
+        ctx.fillRect(0, 0, 240, 60);
+        ctx.font = 'bold 18px Arial, sans-serif';
+        ctx.fillStyle = '#0ff';
+        ctx.fillText('SecureMailbox\u{1F510}', 10, 35);
+        ctx.strokeStyle = 'rgba(255,128,0,0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(200, 30, 20, 0, Math.PI * 2);
+        ctx.stroke();
+        return canvas.toDataURL();
+      } catch { return 'canvas-error'; }
+    }
+
     async function getDeviceId() {
-      // Collect hardware-level signals — stable across all browsers on the same device
       const signals = [
-        screen.width,
-        screen.height,
-        screen.colorDepth,
+        // Hardware signals — identical across all browsers on same device
+        screen.width, screen.height, screen.colorDepth,
         navigator.hardwareConcurrency,
         navigator.deviceMemory || 'unknown',
         Intl.DateTimeFormat().resolvedOptions().timeZone,
         navigator.platform,
         navigator.language,
         navigator.maxTouchPoints,
-      ].join('|');
+        // GPU signals — comes from OS driver, stable across browsers
+        getWebGLSignal(),
+        // Canvas — rendering differs slightly between Chrome/Firefox but adds uniqueness
+        getCanvasSignal(),
+      ].join('||');
 
       const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(signals));
       return Array.from(new Uint8Array(hashBuffer))
