@@ -26,8 +26,19 @@ app.use(express.static('public'));
 // ── Registration ──────────────────────────────────────────────────────────────
 
 app.post('/auth/register/start', async (req, res) => {
-  const { username } = req.body;
+  const { username, deviceId } = req.body;
   if (!username?.trim()) return res.status(400).json({ error: 'Username required' });
+
+  // Check if this device is already registered to a different account
+  if (deviceId) {
+    const existingDeviceCredential = await prisma.credential.findFirst({
+      where: { deviceId, platform: 'WEB_PASSKEY' },
+      include: { user: true },
+    });
+    if (existingDeviceCredential && existingDeviceCredential.user.username !== username) {
+      return res.status(403).json({ error: 'This device is already registered to another account. One account per device is allowed.' });
+    }
+  }
 
   let user = await prisma.user.findUnique({
     where: { username },
@@ -75,7 +86,7 @@ app.post('/auth/register/start', async (req, res) => {
 });
 
 app.post('/auth/register/finish', async (req, res) => {
-  const { username, credential } = req.body;
+  const { username, credential, deviceId } = req.body;
   console.log('[register/finish] storing credentialId:', credential?.id);
 
   const user = await prisma.user.findUnique({ where: { username } });
@@ -108,6 +119,7 @@ app.post('/auth/register/finish', async (req, res) => {
       counter,
       platform: 'WEB_PASSKEY',
       transports: JSON.stringify(credential.response?.transports ?? []),
+      deviceId: deviceId ?? null,
       userId: user.id,
     },
   });

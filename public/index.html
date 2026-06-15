@@ -167,6 +167,12 @@
     const mailboxEl = document.getElementById('mailbox-section');
     const authEl = document.getElementById('auth-section');
 
+    function getDeviceId() {
+      let id = localStorage.getItem('deviceId');
+      if (!id) { id = crypto.randomUUID(); localStorage.setItem('deviceId', id); }
+      return id;
+    }
+
     function setStatus(msg, isError = false) {
       statusEl.textContent = msg;
       statusEl.className = isError ? 'err' : 'ok';
@@ -186,11 +192,12 @@
       if (!username) return setStatus('Please enter a username.', true);
       setStatus('Starting registration…');
       try {
-        const options = await post('/auth/register/start', { username });
+        const deviceId = getDeviceId();
+        const options = await post('/auth/register/start', { username, deviceId });
         if (options.error) return setStatus(options.error, true);
 
         const attResp = await startRegistration({ optionsJSON: options.options || options });
-        const result = await post('/auth/register/finish', { username, credential: attResp });
+        const result = await post('/auth/register/finish', { username, credential: attResp, deviceId });
         if (result.error) return setStatus(result.error, true);
 
         setStatus('Fingerprint registered! You can now log in.');
